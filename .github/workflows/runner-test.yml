@@ -1,0 +1,24 @@
+name: Governance Runner Test
+
+on:
+  workflow_dispatch:
+
+jobs:
+  test-runner:
+    runs-on: [self-hosted, Windows, governance]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Test Environment
+        shell: powershell
+        run: |
+          Write-Host "GitHub Runner Connected!"
+          Write-Host "Runner Name: $env:RUNNER_NAME"
+          Write-Host "Computer: $env:COMPUTERNAME"
+
+          git --version
+          dotnet --version
+          node --version
+          npm --version
