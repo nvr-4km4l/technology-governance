@@ -8,15 +8,15 @@ jobs:
     runs-on: [self-hosted, Windows, governance]
 
     steps:
-      - name: Checkout
+      - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Test Environment
-        shell: powershell
+      - name: Test Runner Environment
+        shell: cmd
         run: |
-          Write-Host "GitHub Runner Connected!"
-          Write-Host "Runner Name: $env:RUNNER_NAME"
-          Write-Host "Computer: $env:COMPUTERNAME"
+          echo GitHub Runner Connected!
+          echo Runner Name: %RUNNER_NAME%
+          echo Computer: %COMPUTERNAME%
 
           git --version
           dotnet --version
