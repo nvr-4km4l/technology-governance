@@ -40,9 +40,22 @@ New-Item -ItemType Directory -Force -Path $reportsDir |
 # Save JSON report
 $output = Join-Path $reportsDir 'technology-health-report.json'
 
+
+Write-Host "Backend source: $BackendPath"
+Write-Host "Frontend source: $FrontendPath"
+
+if (-not (Test-Path -LiteralPath $BackendPath -PathType Container)) {
+    throw "Backend directory not found: $BackendPath"
+}
+
+if (-not (Test-Path -LiteralPath $FrontendPath -PathType Container)) {
+    throw "Frontend directory not found: $FrontendPath"
+}
+
 $report |
     ConvertTo-Json -Depth 15 |
     Set-Content -LiteralPath $output -Encoding utf8
 
 Write-Host 'Technology health report generated successfully!'
 Write-Host "Report location: $output"
+
