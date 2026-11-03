@@ -1,0 +1,25 @@
+
+name: Technology Framework Scan
+
+on:
+  workflow_dispatch:
+
+jobs:
+  framework-scan:
+    runs-on: [self-hosted, Windows, governance]
+
+    steps:
+      - name: Checkout Governance Repository
+        uses: actions/checkout@v4
+
+      - name: Scan Frameworks
+        shell: cmd
+        run: |
+          pwsh -NoProfile -NonInteractive -File scripts\generate-report.ps1
+
+      - name: Upload Technology Report
+        uses: actions/upload-artifact@v4
+        with:
+          name: technology-health-report
+          path: reports/technology-health-report.json
+          if-no-files-found: error
