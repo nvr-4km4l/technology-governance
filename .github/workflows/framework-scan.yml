@@ -1,29 +1,68 @@
+
 name: Technology Framework Scan
 
 on:
   workflow_dispatch:
+  schedule:
+    - cron: '0 1 * * 1'
+
+permissions:
+  contents: read
 
 jobs:
   framework-scan:
     runs-on: [self-hosted, Windows, governance]
 
     steps:
+      # Checkout governance scripts
       - name: Checkout Governance Repository
         uses: actions/checkout@v4
+        with:
+          path: governance
+          persist-credentials: false
 
-      - name: Verify PowerShell 7
+      # Checkout .NET backend
+      - name: Checkout Backend Repository
+        uses: actions/checkout@v4
+        with:
+          repository: nvr-4km4l/poc-backend
+          ref: main
+          path: poc-backend
+          persist-credentials: false
+
+      # Checkout Vue frontend
+      - name: Checkout Frontend Repository
+        uses: actions/checkout@v4
+        with:
+          repository: nvr-4km4l/poc-frontend
+          ref: main
+          path: poc-frontend
+          persist-credentials: false
+
+      # Verify checkout directories
+      - name: Verify Repositories
         shell: cmd
         run: |
-          "C:\Program Files\PowerShell\7\pwsh.exe" --version
+          echo === Governance ===
+          dir governance
 
+          echo === Backend ===
+          dir poc-backend
+
+          echo === Frontend ===
+          dir poc-frontend
+
+      # Generate framework report
       - name: Scan Frameworks
         shell: cmd
         run: |
-          "C:\Program Files\PowerShell\7\pwsh.exe" -NoProfile -NonInteractive -File "scripts\generate-report.ps1"
+          "C:\Program Files\PowerShell\7\pwsh.exe" -NoProfile -NonInteractive -File "governance\scripts\generate-report.ps1" -BackendPath "%GITHUB_WORKSPACE%\poc-backend" -FrontendPath "%GITHUB_WORKSPACE%\poc-frontend"
 
+      # Upload generated JSON report
       - name: Upload Technology Report
         uses: actions/upload-artifact@v4
         with:
           name: technology-health-report
-          path: reports/technology-health-report.json
+          path: governance/reports/technology-health-report.json
           if-no-files-found: error
+          retention-days: 30
