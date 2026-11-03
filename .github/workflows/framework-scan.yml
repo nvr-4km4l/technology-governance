@@ -12,10 +12,15 @@ jobs:
       - name: Checkout Governance Repository
         uses: actions/checkout@v4
 
+      - name: Verify PowerShell 7
+        shell: cmd
+        run: |
+          "C:\Program Files\PowerShell\7\pwsh.exe" --version
+
       - name: Scan Frameworks
         shell: cmd
         run: |
-          pwsh -NoProfile -NonInteractive -File scripts\generate-report.ps1
+          "C:\Program Files\PowerShell\7\pwsh.exe" -NoProfile -NonInteractive -File "scripts\generate-report.ps1"
 
       - name: Upload Technology Report
         uses: actions/upload-artifact@v4
