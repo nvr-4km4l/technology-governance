@@ -2,6 +2,16 @@ name: Technology Framework Scan
 
 on:
   workflow_dispatch:
+    inputs:
+      frontend_ref:
+        description: 'Frontend branch to scan'
+        required: true
+        default: 'main'
+        type: choice
+        options:
+          - main
+          - poc-version-test
+
   schedule:
     - cron: '0 1 * * 1'
 
@@ -31,7 +41,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: nvr-4km4l/poc-frontend
-          ref: main
+          ref: ${{ inputs.frontend_ref || 'main' }}
           path: poc-frontend
           persist-credentials: false
 
