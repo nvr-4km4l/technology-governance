@@ -11,6 +11,7 @@ on:
         options:
           - main
           - poc-version-test
+	  - poc-missing-manifest-test
 
   schedule:
     - cron: '0 1 * * 1'
