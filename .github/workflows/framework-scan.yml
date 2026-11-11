@@ -7,11 +7,11 @@ on:
         description: 'Frontend branch to scan'
         required: true
         default: 'main'
-        type: choice
+        type: string
         options:
           - main
           - poc-version-test
-	  - poc-missing-manifest-test
+          - poc-missing-manifest-test
 
   schedule:
     - cron: '0 1 * * 1'
