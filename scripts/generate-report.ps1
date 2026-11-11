@@ -48,6 +48,15 @@ foreach ($framework in $backend.frameworks) {
         $framework | Add-Member `
             -NotePropertyName 'endOfSupport' `
             -NotePropertyValue $lifecycle.endOfSupport -Force
+
+        $framework | Add-Member `
+            -NotePropertyName 'dataSource' `
+            -NotePropertyValue $lifecycle.dataSource -Force
+
+        $framework | Add-Member `
+            -NotePropertyName 'metadataPhase' `
+            -NotePropertyValue $lifecycle.metadataPhase -Force
+
     }
 }
 

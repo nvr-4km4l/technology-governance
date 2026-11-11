@@ -11,50 +11,76 @@ param(
 
 $ErrorActionPreference = 'Stop'
 
-# Microsoft .NET support dates
-# Source: https://dotnet.microsoft.com/en-us/platform/support/policy
-$dotnetLifecycle = @{
-    '6'  = @{ EndOfSupport = '2024-11-12'; Type = 'LTS' }
-    '8'  = @{ EndOfSupport = '2026-11-10'; Type = 'LTS' }
-    '9'  = @{ EndOfSupport = '2026-11-10'; Type = 'STS' }
-    '10' = @{ EndOfSupport = '2028-11-14'; Type = 'LTS' }
-    '11' = @{ EndOfSupport = '2028-11-14'; Type = 'STS' }
-}
+$metadataUrl = 'https://dotnetcli.blob.core.windows.net/dotnet/release-metadata/releases-index.json'
 
 $result = [ordered]@{
-    framework    = $Framework
-    version      = $Version
+    framework       = $Framework
+    version         = $Version
     lifecycleStatus = 'Unknown'
-    supportType  = $null
-    endOfSupport = $null
-    checkedAt    = $AsOfDate.ToString('yyyy-MM-dd')
+    supportType     = $null
+    endOfSupport    = $null
+    checkedAt       = $AsOfDate.ToString('yyyy-MM-dd')
+    dataSource      = $null
+    metadataPhase   = $null
 }
 
-if ($Framework -eq '.NET') {
+# Currently supports modern .NET target frameworks
+if ($Framework -ne '.NET' -or $Version -notmatch '^net(\d+)\.(\d+)$') {
+    $result | ConvertTo-Json -Depth 5
+    return
+}
 
-    if ($Version -match '^net(\d+)\.\d+$') {
-        $majorVersion = $Matches[1]
+$channelVersion = "$($Matches[1]).$($Matches[2])"
 
-        if ($dotnetLifecycle.ContainsKey($majorVersion)) {
+try {
+    $metadata = Invoke-RestMethod `
+        -Uri $metadataUrl `
+        -Method Get `
+        -TimeoutSec 30
 
-            $info = $dotnetLifecycle[$majorVersion]
-            $eolDate = [datetime]::ParseExact(
-                $info.EndOfSupport,
-                'yyyy-MM-dd',
-                [System.Globalization.CultureInfo]::InvariantCulture
-            )
+    if (-not $metadata.'releases-index') {
+        throw 'Microsoft lifecycle metadata is empty or invalid.'
+    }
 
-            $result.supportType = $info.Type
-            $result.endOfSupport = $info.EndOfSupport
+    $channel = $metadata.'releases-index' |
+        Where-Object { $_.'channel-version' -eq $channelVersion } |
+        Select-Object -First 1
 
-            if ($AsOfDate.Date -gt $eolDate.Date) {
-                $result.lifecycleStatus = 'End of Support'
-            }
-            else {
-                $result.lifecycleStatus = 'Supported'
-            }
+    if (-not $channel) {
+        Write-Warning "No lifecycle metadata for .NET $channelVersion"
+    }
+    else {
+        $eolText = $channel.'eol-date'
+        $phase = $channel.'support-phase'
+
+        if (-not $eolText -or -not $phase) {
+            throw "Incomplete lifecycle metadata for .NET $channelVersion"
+        }
+
+        $eolDate = [datetime]::ParseExact(
+            $eolText,
+            'yyyy-MM-dd',
+            [System.Globalization.CultureInfo]::InvariantCulture
+        )
+
+        $result.supportType = $channel.'release-type'.ToUpperInvariant()
+        $result.endOfSupport = $eolText
+        $result.metadataPhase = $phase
+        $result.dataSource = $metadataUrl
+
+        if ($AsOfDate.Date -gt $eolDate.Date -or $phase -eq 'eol') {
+            $result.lifecycleStatus = 'End of Support'
+        }
+        elseif ($phase -in @('active', 'maintenance', 'go-live')) {
+            $result.lifecycleStatus = 'Supported'
+        }
+        else {
+            $result.lifecycleStatus = 'Unknown'
         }
     }
+}
+catch {
+    throw "Failed to retrieve or validate Microsoft lifecycle metadata: $($_.Exception.Message)"
 }
 
 $result | ConvertTo-Json -Depth 5
