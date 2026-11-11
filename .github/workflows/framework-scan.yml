@@ -72,3 +72,10 @@ jobs:
           name: technology-health-report
           path: governance/reports/technology-health-report.json
           if-no-files-found: error
+      - name: Create EOL GitHub Issue
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.backend_ref == 'poc-eol-test' }}
+        shell: cmd
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          "C:\Program Files\PowerShell\7\pwsh.exe" -NoProfile -NonInteractive -File "governance\scripts\create-eol-issue.ps1" -ReportPath "governance\reports\technology-health-report.json" -CreateIssue
