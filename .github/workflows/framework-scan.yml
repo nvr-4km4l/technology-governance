@@ -13,11 +13,21 @@ on:
           - poc-version-test
           - poc-missing-manifest-test
 
+      backend_ref:
+        description: 'Backend branch to scan'
+        required: true
+        default: 'main'
+        type: choice
+        options:
+          - main
+          - poc-eol-test
+
   schedule:
     - cron: '0 1 * * 1'
 
 permissions:
   contents: read
+  issues: write
 
 jobs:
   framework-scan:
@@ -34,7 +44,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: nvr-4km4l/poc-backend
-          ref: main
+          ref: ${{ inputs.backend_ref || 'main' }}
           path: poc-backend
           persist-credentials: false
 
