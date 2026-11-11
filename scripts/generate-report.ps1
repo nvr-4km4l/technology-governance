@@ -24,6 +24,33 @@ $frontendJson = & $detector `
 
 $frontend = $frontendJson | ConvertFrom-Json
 
+# Check lifecycle for detected .NET frameworks
+$lifecycleChecker = Join-Path $PSScriptRoot 'check-lifecycle.ps1'
+
+foreach ($framework in $backend.frameworks) {
+
+    if ($framework.name -eq '.NET') {
+
+        $lifecycleJson = & $lifecycleChecker `
+            -Framework $framework.name `
+            -Version $framework.version
+
+        $lifecycle = $lifecycleJson | ConvertFrom-Json
+
+        $framework | Add-Member `
+            -NotePropertyName 'lifecycleStatus' `
+            -NotePropertyValue $lifecycle.lifecycleStatus -Force
+
+        $framework | Add-Member `
+            -NotePropertyName 'supportType' `
+            -NotePropertyValue $lifecycle.supportType -Force
+
+        $framework | Add-Member `
+            -NotePropertyName 'endOfSupport' `
+            -NotePropertyValue $lifecycle.endOfSupport -Force
+    }
+}
+
 # Generate centralized report
 $report = [ordered]@{
     reportName   = 'Technology Health Report'
@@ -56,6 +83,8 @@ $report |
     ConvertTo-Json -Depth 15 |
     Set-Content -LiteralPath $output -Encoding utf8
 
-Write-Host 'Technology health report generated successfully!'
+Write-Host "Backend source: $BackendPath"
+Write-Host "Frontend source: $FrontendPath"
+Write-Host "Technology health report generated successfully!"
 Write-Host "Report location: $output"
 
