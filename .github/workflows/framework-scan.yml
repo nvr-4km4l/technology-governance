@@ -27,6 +27,7 @@ on:
 
 permissions:
   contents: read
+  actions: read
   issues: write
 
 jobs:
@@ -105,10 +106,19 @@ jobs:
           path: governance/reports/scan-configuration.json
           if-no-files-found: error
 
+      - name: Retrieve Previous Framework Baseline
+        shell: cmd
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BACKEND_REF: ${{ inputs.backend_ref || 'main' }}
+          FRONTEND_REF: ${{ inputs.frontend_ref || 'main' }}
+        run: |
+          "C:\Program Files\PowerShell\7\pwsh.exe" -NoProfile -NonInteractive -File "governance\scripts\get-previous-framework-report.ps1" -Repository "${{ github.repository }}" -CurrentRunId "${{ github.run_id }}" -BackendRef "%BACKEND_REF%" -FrontendRef "%FRONTEND_REF%" -CurrentReport "governance\reports\technology-health-report.json" -OutputPath "governance\reports\previous-framework-report.json"
+
       - name: Compare Framework Versions
         shell: cmd
         run: |
-          "C:\Program Files\PowerShell\7\pwsh.exe" -NoProfile -NonInteractive -File "governance\scripts\compare-frameworks.ps1" -PreviousReport "governance\baselines\framework-baseline.json" -CurrentReport "governance\reports\technology-health-report.json" -OutputPath "governance\reports\framework-change-report.json"
+          "C:\Program Files\PowerShell\7\pwsh.exe" -NoProfile -NonInteractive -File "governance\scripts\compare-frameworks.ps1" -PreviousReport "governance\reports\previous-framework-report.json" -CurrentReport "governance\reports\technology-health-report.json" -OutputPath "governance\reports\framework-change-report.json"
 
       - name: Upload Framework Change Report
         uses: actions/upload-artifact@v4
