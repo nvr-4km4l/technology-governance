@@ -82,13 +82,36 @@ jobs:
           path: governance/reports/technology-health-report.json
           if-no-files-found: error
 
+      - 
       - name: Create Framework Change GitHub Issue
-        shell: cmd
+        shell: pwsh
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          "C:\Program Files\PowerShell\7\pwsh.exe" -NoProfile -NonInteractive -File "governance\scripts\create-framework-change-issue.ps1" -ReportPath "governance\reports\framework-change-report.json" -Repository "${{ github.repository }}" -CreateIssue
+          $reportPath = Join-Path "${{ github.workspace }}" "governance\reports\framework-change-report.json"
 
+          Write-Host "Checking framework change report..."
+          Write-Host "Report path: $reportPath"
+
+          if (-not (Test-Path $reportPath)) {
+              Write-Host "Files available in reports directory:"
+              Get-ChildItem "governance\reports" -Recurse -ErrorAction SilentlyContinue |
+                  Select-Object FullName
+
+              throw "Framework change report not found."
+          }
+
+          Write-Host "Framework change report found!"
+
+          & "governance\scripts\create-framework-change-issue.ps1" `
+              -ReportPath $reportPath `
+              -Repository "${{ github.repository }}" `
+              -CreateIssue
+
+          if (-not $?) {
+              throw "Framework change issue script failed."
+          }
+          
       - name: Save Scan Configuration
         shell: pwsh
         env:
