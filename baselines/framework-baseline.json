@@ -1,0 +1,40 @@
+﻿{
+    "reportName":  "Technology Health Report",
+    "generatedAt":  "2026-11-11T06:35:11.8400327Z",
+    "repositories":  [
+                         {
+                             "projectPath":  "C:\\project\\poc-backend",
+                             "projectType":  "dotnet",
+                             "scanDate":  "2026-11-11T06:35:10.7872317Z",
+                             "frameworks":  [
+                                                {
+                                                    "name":  ".NET",
+                                                    "version":  "net10.0",
+                                                    "project":  "poc-backend.csproj",
+                                                    "lifecycleStatus":  "Supported",
+                                                    "supportType":  "LTS",
+                                                    "endOfSupport":  "2028-11-14",
+                                                    "dataSource":  "https://dotnetcli.blob.core.windows.net/dotnet/release-metadata/releases-index.json",
+                                                    "metadataPhase":  "active"
+                                                }
+                                            ]
+                         },
+                         {
+                             "projectPath":  "C:\\project\\poc-frontend",
+                             "projectType":  "vue",
+                             "scanDate":  "2026-11-11T06:35:10.8374912Z",
+                             "frameworks":  [
+                                                {
+                                                    "name":  "vue",
+                                                    "version":  "^3.5.44",
+                                                    "project":  "poc-frontend"
+                                                },
+                                                {
+                                                    "name":  "vite",
+                                                    "version":  "^8.3.5",
+                                                    "project":  "poc-frontend"
+                                                }
+                                            ]
+                         }
+                     ]
+}

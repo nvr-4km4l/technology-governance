@@ -72,7 +72,19 @@ jobs:
           name: technology-health-report
           path: governance/reports/technology-health-report.json
           if-no-files-found: error
-      
+
+      - name: Compare Framework Versions
+        shell: cmd
+        run: |
+          "C:\Program Files\PowerShell\7\pwsh.exe" -NoProfile -NonInteractive -File "governance\scripts\compare-frameworks.ps1" -PreviousReport "governance\baselines\framework-baseline.json" -CurrentReport "governance\reports\technology-health-report.json" -OutputPath "governance\reports\framework-change-report.json"
+
+      - name: Upload Framework Change Report
+        uses: actions/upload-artifact@v4
+        with:
+          name: framework-change-report
+          path: governance/reports/framework-change-report.json
+          if-no-files-found: error
+
       - name: Scan Dependency Vulnerabilities
         shell: pwsh
         run: |
