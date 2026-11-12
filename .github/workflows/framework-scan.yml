@@ -87,7 +87,14 @@ jobs:
           name: technology-vulnerability-report
           path: governance/reports/vulnerability-report.json
           if-no-files-found: error
-          
+
+      - name: Create Vulnerability GitHub Issue
+        shell: cmd
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          "C:\Program Files\PowerShell\7\pwsh.exe" -NoProfile -NonInteractive -File "governance\scripts\create-vulnerability-issue.ps1" -ReportPath "governance\reports\vulnerability-report.json" -Repository "${{ github.repository }}" -CreateIssue
+   
       - name: Create EOL GitHub Issue
         if: ${{ github.event_name == 'workflow_dispatch' && inputs.backend_ref == 'poc-eol-test' }}
         shell: cmd
