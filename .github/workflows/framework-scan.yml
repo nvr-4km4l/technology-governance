@@ -1,3 +1,4 @@
+
 name: Technology Framework Scan
 
 on:
@@ -7,7 +8,7 @@ on:
         description: 'Frontend branch to scan'
         required: true
         default: 'main'
-        type: string
+        type: choice
         options:
           - main
           - poc-version-test
@@ -35,6 +36,7 @@ jobs:
     runs-on: [self-hosted, Windows, governance]
 
     steps:
+      # 1. Checkout repositories
       - name: Checkout Governance Repository
         uses: actions/checkout@v4
         with:
@@ -57,15 +59,11 @@ jobs:
           path: poc-frontend
           persist-credentials: false
 
+      # 2. Verify tools
       - name: Verify PowerShell 7
         shell: cmd
         run: |
           "C:\Program Files\PowerShell\7\pwsh.exe" --version
-
-      - name: Scan Frameworks
-        shell: cmd
-        run: |
-          "C:\Program Files\PowerShell\7\pwsh.exe" -NoProfile -NonInteractive -File "governance\scripts\generate-report.ps1" -BackendPath "%GITHUB_WORKSPACE%\poc-backend" -FrontendPath "%GITHUB_WORKSPACE%\poc-frontend"
 
       - name: Verify GitHub CLI on Runner
         shell: cmd
@@ -75,6 +73,12 @@ jobs:
           gh --version
           gh api repos/${{ github.repository }}/actions/runs/${{ github.run_id }} --jq ".id"
 
+      # 3. Generate technology health report
+      - name: Scan Frameworks
+        shell: cmd
+        run: |
+          "C:\Program Files\PowerShell\7\pwsh.exe" -NoProfile -NonInteractive -File "governance\scripts\generate-report.ps1" -BackendPath "%GITHUB_WORKSPACE%\poc-backend" -FrontendPath "%GITHUB_WORKSPACE%\poc-frontend"
+
       - name: Upload Technology Report
         uses: actions/upload-artifact@v4
         with:
@@ -82,35 +86,7 @@ jobs:
           path: governance/reports/technology-health-report.json
           if-no-files-found: error
 
-      - name: Create Framework Change GitHub Issue
-        shell: pwsh
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          $reportPath = Join-Path "${{ github.workspace }}" "governance\reports\framework-change-report.json"
-
-          Write-Host "Checking framework change report..."
-          Write-Host "Report path: $reportPath"
-
-          if (-not (Test-Path $reportPath)) {
-              Write-Host "Files available in reports directory:"
-              Get-ChildItem "governance\reports" -Recurse -ErrorAction SilentlyContinue |
-                  Select-Object FullName
-
-              throw "Framework change report not found."
-          }
-
-          Write-Host "Framework change report found!"
-
-          & "governance\scripts\create-framework-change-issue.ps1" `
-              -ReportPath $reportPath `
-              -Repository "${{ github.repository }}" `
-              -CreateIssue
-
-          if (-not $?) {
-              throw "Framework change issue script failed."
-          }
-          
+      # 4. Save branch configuration
       - name: Save Scan Configuration
         shell: pwsh
         env:
@@ -135,6 +111,7 @@ jobs:
           path: governance/reports/scan-configuration.json
           if-no-files-found: error
 
+      # 5. Retrieve previous framework baseline
       - name: Retrieve Previous Framework Baseline
         shell: cmd
         env:
@@ -144,6 +121,7 @@ jobs:
         run: |
           "C:\Program Files\PowerShell\7\pwsh.exe" -NoProfile -NonInteractive -File "governance\scripts\get-previous-framework-report.ps1" -Repository "${{ github.repository }}" -CurrentRunId "${{ github.run_id }}" -BackendRef "%BACKEND_REF%" -FrontendRef "%FRONTEND_REF%" -CurrentReport "governance\reports\technology-health-report.json" -OutputPath "governance\reports\previous-framework-report.json"
 
+      # 6. Compare previous and current frameworks
       - name: Compare Framework Versions
         shell: cmd
         run: |
@@ -156,6 +134,33 @@ jobs:
           path: governance/reports/framework-change-report.json
           if-no-files-found: error
 
+      # 7. Create framework change issues
+      - name: Create Framework Change GitHub Issue
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $reportPath = Join-Path $env:GITHUB_WORKSPACE "governance\reports\framework-change-report.json"
+
+          Write-Host "Checking framework change report..."
+          Write-Host "Report path: $reportPath"
+
+          if (-not (Test-Path $reportPath)) {
+              throw "Framework change report not found: $reportPath"
+          }
+
+          Write-Host "Framework change report found!"
+
+          & "governance\scripts\create-framework-change-issue.ps1" `
+              -ReportPath $reportPath `
+              -Repository "${{ github.repository }}" `
+              -CreateIssue
+
+          if (-not $?) {
+              throw "Framework change issue script failed."
+          }
+
+      # 8. Scan dependency vulnerabilities
       - name: Scan Dependency Vulnerabilities
         shell: pwsh
         run: |
@@ -171,13 +176,15 @@ jobs:
           path: governance/reports/vulnerability-report.json
           if-no-files-found: error
 
+      # 9. Create vulnerability issues
       - name: Create Vulnerability GitHub Issue
         shell: cmd
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           "C:\Program Files\PowerShell\7\pwsh.exe" -NoProfile -NonInteractive -File "governance\scripts\create-vulnerability-issue.ps1" -ReportPath "governance\reports\vulnerability-report.json" -Repository "${{ github.repository }}" -CreateIssue
-   
+
+      # 10. Create EOL issues for test branch
       - name: Create EOL GitHub Issue
         if: ${{ github.event_name == 'workflow_dispatch' && inputs.backend_ref == 'poc-eol-test' }}
         shell: cmd
