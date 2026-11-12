@@ -82,6 +82,13 @@ jobs:
           path: governance/reports/technology-health-report.json
           if-no-files-found: error
 
+      - name: Create Framework Change GitHub Issue
+        shell: cmd
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          "C:\Program Files\PowerShell\7\pwsh.exe" -NoProfile -NonInteractive -File "governance\scripts\create-framework-change-issue.ps1" -ReportPath "governance\reports\framework-change-report.json" -Repository "${{ github.repository }}" -CreateIssue
+
       - name: Save Scan Configuration
         shell: pwsh
         env:
