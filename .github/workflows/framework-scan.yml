@@ -82,7 +82,6 @@ jobs:
           path: governance/reports/technology-health-report.json
           if-no-files-found: error
 
-      - 
       - name: Create Framework Change GitHub Issue
         shell: pwsh
         env:
