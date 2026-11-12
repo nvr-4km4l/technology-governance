@@ -72,6 +72,22 @@ jobs:
           name: technology-health-report
           path: governance/reports/technology-health-report.json
           if-no-files-found: error
+      
+      - name: Scan Dependency Vulnerabilities
+        shell: pwsh
+        run: |
+          & "governance\scripts\scan-vulnerabilities.ps1" `
+            -BackendPath "${{ github.workspace }}\poc-backend" `
+            -FrontendPath "${{ github.workspace }}\poc-frontend" `
+            -OutputPath "${{ github.workspace }}\governance\reports\vulnerability-report.json"
+
+      - name: Upload Vulnerability Report
+        uses: actions/upload-artifact@v4
+        with:
+          name: technology-vulnerability-report
+          path: governance/reports/vulnerability-report.json
+          if-no-files-found: error
+          
       - name: Create EOL GitHub Issue
         if: ${{ github.event_name == 'workflow_dispatch' && inputs.backend_ref == 'poc-eol-test' }}
         shell: cmd
