@@ -81,6 +81,30 @@ jobs:
           path: governance/reports/technology-health-report.json
           if-no-files-found: error
 
+      - name: Save Scan Configuration
+        shell: pwsh
+        env:
+          BACKEND_REF: ${{ inputs.backend_ref || 'main' }}
+          FRONTEND_REF: ${{ inputs.frontend_ref || 'main' }}
+        run: |
+          $config = @{
+            backendRef = $env:BACKEND_REF
+            frontendRef = $env:FRONTEND_REF
+            workflowRunId = "${{ github.run_id }}"
+            generatedAt = (Get-Date).ToUniversalTime().ToString("o")
+          }
+
+          $config |
+            ConvertTo-Json |
+            Set-Content "governance/reports/scan-configuration.json"
+
+      - name: Upload Scan Configuration
+        uses: actions/upload-artifact@v4
+        with:
+          name: scan-configuration
+          path: governance/reports/scan-configuration.json
+          if-no-files-found: error
+
       - name: Compare Framework Versions
         shell: cmd
         run: |
