@@ -66,6 +66,14 @@ jobs:
         run: |
           "C:\Program Files\PowerShell\7\pwsh.exe" -NoProfile -NonInteractive -File "governance\scripts\generate-report.ps1" -BackendPath "%GITHUB_WORKSPACE%\poc-backend" -FrontendPath "%GITHUB_WORKSPACE%\poc-frontend"
 
+      - name: Verify GitHub CLI on Runner
+        shell: cmd
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh --version
+          gh api repos/${{ github.repository }}/actions/runs/${{ github.run_id }} --jq ".id"
+
       - name: Upload Technology Report
         uses: actions/upload-artifact@v4
         with:
