@@ -1,0 +1,80 @@
+
+name: Reusable Technology Governance Scan
+
+on:
+  workflow_call:
+    inputs:
+      project_path:
+        description: 'Relative path to the project'
+        required: false
+        type: string
+        default: '.'
+
+      project_type:
+        description: 'Project framework type'
+        required: false
+        type: string
+        default: 'auto'
+
+    outputs:
+      scan_status:
+        description: 'Result of governance workflow'
+        value: ${{ jobs.governance.outputs.scan_status }}
+
+permissions:
+  contents: read
+  actions: read
+  issues: write
+
+jobs:
+  governance:
+    runs-on: [self-hosted, Windows, governance]
+
+    outputs:
+      scan_status: ${{ steps.status.outputs.scan_status }}
+
+    steps:
+      - name: Checkout Developer Repository
+        uses: actions/checkout@v4
+        with:
+          path: developer-project
+          persist-credentials: false
+
+      - name: Checkout Governance Engine
+        uses: actions/checkout@v4
+        with:
+          repository: nvr-4km4l/technology-governance
+          path: governance
+          persist-credentials: false
+
+      - name: Verify Environment
+        shell: pwsh
+        run: |
+          Write-Host "Technology Governance Scanner"
+          Write-Host "Repository: $env:GITHUB_REPOSITORY"
+          Write-Host "Workspace: $env:GITHUB_WORKSPACE"
+          Write-Host "Project path: ${{ inputs.project_path }}"
+          Write-Host "Project type: ${{ inputs.project_type }}"
+
+          & "C:\Program Files\PowerShell\7\pwsh.exe" --version
+
+      - name: Verify Developer Project
+        shell: pwsh
+        env:
+          PROJECT_PATH: ${{ inputs.project_path }}
+        run: |
+          $projectRoot = Join-Path $env:GITHUB_WORKSPACE "developer-project"
+          $projectPath = Join-Path $projectRoot $env:PROJECT_PATH
+
+          if (-not (Test-Path $projectPath -PathType Container)) {
+              throw "Developer project directory not found: $projectPath"
+          }
+
+          Write-Host "Developer project found: $projectPath"
+
+      - name: Set Scan Status
+        id: status
+        shell: pwsh
+        run: |
+          "scan_status=setup-verified" >> $env:GITHUB_OUTPUT
+          Write-Host "Reusable workflow setup verified."
