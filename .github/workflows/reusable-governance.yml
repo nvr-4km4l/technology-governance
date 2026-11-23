@@ -72,6 +72,45 @@ jobs:
 
           Write-Host "Developer project found: $projectPath"
 
+
+      - name: Scan Developer Frameworks
+        shell: pwsh
+        env:
+          PROJECT_PATH: ${{ inputs.project_path }}
+          PROJECT_TYPE: ${{ inputs.project_type }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+
+          $projectRoot = Join-Path $env:GITHUB_WORKSPACE "developer-project"
+          $projectPath = Join-Path $projectRoot $env:PROJECT_PATH
+          $reportPath = Join-Path $env:GITHUB_WORKSPACE "governance\reports\technology-health-report.json"
+
+          & "C:\Program Files\PowerShell\7\pwsh.exe" `
+            -NoProfile `
+            -NonInteractive `
+            -File "governance\scripts\generate-developer-report.ps1" `
+            -ProjectPath $projectPath `
+            -ProjectType $env:PROJECT_TYPE `
+            -OutputPath $reportPath
+
+          if ($LASTEXITCODE -ne 0) {
+              throw "Developer framework scan failed."
+          }
+
+          if (-not (Test-Path -LiteralPath $reportPath)) {
+              throw "Technology health report was not generated."
+          }
+
+          Write-Host "Developer framework scan completed successfully."
+
+      - name: Upload Developer Technology Report
+        uses: actions/upload-artifact@v4
+        with:
+          name: technology-health-report
+          path: governance/reports/technology-health-report.json
+          if-no-files-found: error
+
+
       - name: Set Scan Status
         id: status
         shell: pwsh
