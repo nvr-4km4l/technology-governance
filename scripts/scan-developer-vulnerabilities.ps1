@@ -8,7 +8,7 @@ param(
     [string]$ProjectType,
 
     [Parameter(Mandatory = $true)]
-    [string]$OutputPath
+    [string]$OutputPath,
 
     [string]$RepositoryName = ''
 )
