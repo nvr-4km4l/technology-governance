@@ -80,9 +80,13 @@ if ($ProjectType -eq 'frontend') {
     }
 }
 
+
 elseif ($ProjectType -eq 'backend') {
 
-    $projects = @(Get-ChildItem -LiteralPath $projectRoot -Filter '*.csproj' -Recurse -File)
+    $projects = @(
+        Get-ChildItem -LiteralPath $projectRoot `
+            -Filter '*.csproj' -Recurse -File
+    )
 
     if ($projects.Count -eq 0) {
         throw "No .csproj files found: $projectRoot"
@@ -90,39 +94,81 @@ elseif ($ProjectType -eq 'backend') {
 
     Write-Host "Scanning NuGet dependencies: $projectName"
 
-    Push-Location $projectRoot
+    $nugetFindings = @()
 
-    try {
-        $nugetOutput = & dotnet list package --vulnerable --include-transitive 2>&1
+    foreach ($project in $projects) {
+
+        Write-Host "Scanning project: $($project.Name)"
+
+        $nugetOutput = & dotnet list $project.FullName package `
+            --vulnerable `
+            --include-transitive `
+            --format json 2>&1
+
         $nugetExitCode = $LASTEXITCODE
-    }
-    finally {
-        Pop-Location
+
+        if ($nugetExitCode -ne 0) {
+            throw "NuGet scan failed for $($project.Name): $($nugetOutput -join ' ')"
+        }
+
+        $nugetText = $nugetOutput -join "`n"
+
+        try {
+            $nugetReport = $nugetText | ConvertFrom-Json -ErrorAction Stop
+        }
+        catch {
+            throw "Unable to parse NuGet JSON for $($project.Name): $($_.Exception.Message)"
+        }
+
+        foreach ($nugetProject in @($nugetReport.projects)) {
+
+            foreach ($framework in @($nugetProject.frameworks)) {
+
+                $packages = @(
+                    @($framework.topLevelPackages) +
+                    @($framework.transitivePackages)
+                ) | Where-Object { $null -ne $_ }
+
+                foreach ($package in $packages) {
+
+                    foreach ($advisory in @($package.vulnerabilities)) {
+
+                        if ($null -eq $advisory) {
+                            continue
+                        }
+
+                        $nugetFindings += [PSCustomObject]@{
+                            package = $package.id
+                            version = $package.resolvedVersion
+                            severity = $advisory.severity
+                            advisoryUrl = $advisory.advisoryurl
+                            projectFile = $project.Name
+                            framework = $framework.framework
+                        }
+                    }
+                }
+            }
+        }
     }
 
-    if ($nugetExitCode -ne 0) {
-        throw "NuGet vulnerability scan failed: $($nugetOutput -join ' ')"
+    $nugetStatus = if ($nugetFindings.Count -gt 0) {
+        'VulnerabilitiesDetected'
     }
-
-    $nugetText = $nugetOutput -join "`n"
-
-    $nugetStatus = 'ReviewRequired'
-
-    if ($nugetText -match 'has no vulnerable packages') {
-        $nugetStatus = 'Clean'
-    }
-    elseif ($nugetText -match 'Severity|Advisory URL') {
-        $nugetStatus = 'VulnerabilitiesDetected'
+    else {
+        'Clean'
     }
 
     $repositories += [ordered]@{
         project = $projectName
         ecosystem = 'NuGet'
         status = $nugetStatus
-        vulnerabilities = @()
-        rawOutput = $nugetText
+        vulnerabilityCounts = [ordered]@{
+            total = $nugetFindings.Count
+        }
+        vulnerabilities = @($nugetFindings)
     }
 }
+
 
 $report = [ordered]@{
     reportName = 'Technology Vulnerability Report'
