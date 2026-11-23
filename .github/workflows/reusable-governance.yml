@@ -173,7 +173,67 @@ jobs:
           if ($LASTEXITCODE -ne 0) {
               throw "Framework change issue creation failed."
           }
-          
+
+      # Developer vulnerability scanning
+      - name: Scan Developer Vulnerabilities
+        shell: pwsh
+        env:
+          PROJECT_PATH: ${{ inputs.project_path }}
+          PROJECT_TYPE: ${{ inputs.project_type }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+
+          $projectRoot = Join-Path $env:GITHUB_WORKSPACE "developer-project"
+          $projectPath = Join-Path $projectRoot $env:PROJECT_PATH
+          $reportPath = Join-Path $env:GITHUB_WORKSPACE "governance\reports\vulnerability-report.json"
+
+          & "C:\Program Files\PowerShell\7\pwsh.exe" `
+            -NoProfile `
+            -NonInteractive `
+            -File "governance\scripts\scan-developer-vulnerabilities.ps1" `
+            -ProjectPath $projectPath `
+            -ProjectType $env:PROJECT_TYPE `
+            -OutputPath $reportPath
+
+          if ($LASTEXITCODE -ne 0) {
+              throw "Developer vulnerability scan failed."
+          }
+
+          if (-not (Test-Path -LiteralPath $reportPath)) {
+              throw "Vulnerability report was not generated."
+          }
+
+          Write-Host "Developer vulnerability scan completed."
+
+      # Upload vulnerability report
+      - name: Upload Developer Vulnerability Report
+        uses: actions/upload-artifact@v4
+        with:
+          name: developer-vulnerability-report
+          path: governance/reports/vulnerability-report.json
+          if-no-files-found: error
+
+      # Create vulnerability issues in developer repository
+      - name: Create Developer Vulnerability Issues
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TARGET_REPOSITORY: ${{ github.repository }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+
+          & "C:\Program Files\PowerShell\7\pwsh.exe" `
+            -NoProfile `
+            -NonInteractive `
+            -File "governance\scripts\create-vulnerability-issue.ps1" `
+            -ReportPath "governance\reports\vulnerability-report.json" `
+            -Repository $env:TARGET_REPOSITORY `
+            -CreateIssue
+
+          if ($LASTEXITCODE -ne 0) {
+              throw "Developer vulnerability issue creation failed."
+          }
+
       - name: Set Scan Status
         id: status
         shell: pwsh
