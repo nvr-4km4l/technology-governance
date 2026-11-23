@@ -110,6 +110,36 @@ jobs:
           path: governance/reports/technology-health-report.json
           if-no-files-found: error
 
+      # Create EOL issues in the developer repository
+      - name: Create Developer EOL Issues
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TARGET_REPOSITORY: ${{ github.repository }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+
+          $reportPath = "governance/reports/technology-health-report.json"
+
+          if (-not (Test-Path -LiteralPath $reportPath)) {
+              throw "Technology health report not found."
+          }
+
+          & "C:\Program Files\PowerShell\7\pwsh.exe" `
+            -NoProfile `
+            -NonInteractive `
+            -File "governance/scripts/create-eol-issue.ps1" `
+            -ReportPath $reportPath `
+            -IssueRepository $env:TARGET_REPOSITORY `
+            -CreateIssue
+
+          if ($LASTEXITCODE -ne 0) {
+              throw "Developer EOL issue creation failed."
+          }
+
+          Write-Host "Developer EOL issue processing completed."
+
+
       - name: Retrieve Previous Developer Baseline
         shell: pwsh
         env:

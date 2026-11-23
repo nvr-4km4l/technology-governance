@@ -50,6 +50,7 @@ foreach ($item in $eolFrameworks) {
         throw 'GH_TOKEN is not available.'
     }
 
+    
     $body = @"
 ## End-of-Support Warning
 
@@ -64,6 +65,7 @@ The framework was detected as End of Support by the Technology Governance scanne
 
 Generated automatically by Technology Governance.
 "@
+
 
     # Check existing open issues to prevent duplicates
     $existing = gh issue list `
