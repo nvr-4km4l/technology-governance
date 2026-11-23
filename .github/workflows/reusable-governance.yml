@@ -180,6 +180,7 @@ jobs:
         env:
           PROJECT_PATH: ${{ inputs.project_path }}
           PROJECT_TYPE: ${{ inputs.project_type }}
+          REPOSITORY_NAME: ${{ github.event.repository.name }}
         run: |
           $ErrorActionPreference = 'Stop'
 
@@ -193,6 +194,7 @@ jobs:
             -File "governance\scripts\scan-developer-vulnerabilities.ps1" `
             -ProjectPath $projectPath `
             -ProjectType $env:PROJECT_TYPE `
+            -RepositoryName $env:REPOSITORY_NAME `
             -OutputPath $reportPath
 
           if ($LASTEXITCODE -ne 0) {

@@ -9,12 +9,19 @@ param(
 
     [Parameter(Mandatory = $true)]
     [string]$OutputPath
+
+    [string]$RepositoryName = ''
 )
 
 $ErrorActionPreference = 'Stop'
 
 $projectRoot = (Resolve-Path -LiteralPath $ProjectPath).Path
-$projectName = Split-Path $projectRoot -Leaf
+$projectName = if (-not [string]::IsNullOrWhiteSpace($RepositoryName)) {
+    $RepositoryName
+}
+else {
+    Split-Path $projectRoot -Leaf
+}
 
 $repositories = @()
 
