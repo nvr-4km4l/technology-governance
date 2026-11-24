@@ -26,16 +26,9 @@ $result = [ordered]@{
 if ($ProjectType -eq "dotnet") {
 
     $projects = @(
-        Get-ChildItem -LiteralPath $ProjectPath `
-            -Filter "*.csproj" -File -Recurse |
-        Where-Object {
-            $_.FullName -notmatch '[\\/](bin|obj)[\\/]'
-        }
+        & "$PSScriptRoot\get-dotnet-projects.ps1" `
+            -ProjectPath $ProjectPath
     )
-
-    if ($projects.Count -eq 0) {
-        throw "No .csproj files found"
-    }
 
     foreach ($project in $projects) {
 

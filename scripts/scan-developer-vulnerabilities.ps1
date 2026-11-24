@@ -84,13 +84,9 @@ if ($ProjectType -eq 'frontend') {
 elseif ($ProjectType -eq 'backend') {
 
     $projects = @(
-        Get-ChildItem -LiteralPath $projectRoot `
-            -Filter '*.csproj' -Recurse -File
+        & "$PSScriptRoot\get-dotnet-projects.ps1" `
+            -ProjectPath $projectRoot
     )
-
-    if ($projects.Count -eq 0) {
-        throw "No .csproj files found: $projectRoot"
-    }
 
     Write-Host "Scanning NuGet dependencies: $projectName"
 
@@ -124,26 +120,48 @@ elseif ($ProjectType -eq 'backend') {
 
             foreach ($framework in @($nugetProject.frameworks)) {
 
-                $packages = @(
-                    @($framework.topLevelPackages) +
-                    @($framework.transitivePackages)
-                ) | Where-Object { $null -ne $_ }
+                $packageGroups = @(
+                    @{
+                        dependencyType = 'Direct'
+                        packages = @($framework.topLevelPackages)
+                    }
 
-                foreach ($package in $packages) {
+                    @{
+                        dependencyType = 'Transitive'
+                        packages = @($framework.transitivePackages)
+                    }
+                )
 
-                    foreach ($advisory in @($package.vulnerabilities)) {
+                foreach ($packageGroup in $packageGroups) {
 
-                        if ($null -eq $advisory) {
+                    foreach ($package in $packageGroup.packages) {
+
+                        if ($null -eq $package) {
                             continue
                         }
 
-                        $nugetFindings += [PSCustomObject]@{
-                            package = $package.id
-                            version = $package.resolvedVersion
-                            severity = $advisory.severity
-                            advisoryUrl = $advisory.advisoryurl
-                            projectFile = $project.Name
-                            framework = $framework.framework
+                        foreach ($advisory in @($package.vulnerabilities)) {
+
+                            if ($null -eq $advisory) {
+                                continue
+                            }
+
+                            $nugetFindings += [PSCustomObject]@{
+
+                                package = $package.id
+
+                                version = $package.resolvedVersion
+
+                                severity = $advisory.severity
+
+                                advisoryUrl = $advisory.advisoryurl
+
+                                projectFile = $project.Name
+
+                                framework = $framework.framework
+
+                                dependencyType = $packageGroup.dependencyType
+                            }
                         }
                     }
                 }
@@ -158,13 +176,16 @@ elseif ($ProjectType -eq 'backend') {
         'Clean'
     }
 
+    $nugetSummary = & "$PSScriptRoot\get-vulnerability-summary.ps1" `
+        -Findings @($nugetFindings)
+
     $repositories += [ordered]@{
         project = $projectName
         ecosystem = 'NuGet'
         status = $nugetStatus
-        vulnerabilityCounts = [ordered]@{
-            total = $nugetFindings.Count
-        }
+
+        vulnerabilityCounts = $nugetSummary
+
         vulnerabilities = @($nugetFindings)
     }
 }
