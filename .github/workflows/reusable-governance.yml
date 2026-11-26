@@ -44,7 +44,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: nvr-4km4l/technology-governance
-          ref: feature/vulnerability-scanner-enhancement
+          ref: fix/github-actions-author-compatibility
           path: governance
           persist-credentials: false
 
